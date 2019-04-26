@@ -10,13 +10,32 @@ def getUniqueRiceLines(data):
 
 	uniqueRice = list(set(allRice))			#set is a data structure that cannot have duplicates in, turn it into a set then turn it back into a list
 
-	return uniqueRice
+	riceList = []
+
+	#convert all rice names to integers - substring
+	for i in range(0,len(uniqueRice)):
+		if(uniqueRice[i] != 'riceIR64' and uniqueRice[i] != 'riceir64'):
+			riceList.append(int(uniqueRice[i][4:]))
+	
+	riceList.sort()
+
+	for i in range(0,len(riceList)):
+		riceList[i] = 'rice'+str(riceList[i])
+
+	riceList.append('riceIR64')
+	uniqueRice = riceList
+	return riceList
 
 
 
 def parseDataInput(data):
 	allData = []
 	for row in data:
+		if(row[2] == 'riceir64'):
+			row[2] = 'riceIR64'
+		if(row[2] == 'ricc7'):
+			row[2] = 'rice7'
+
 		allData.append(row);
 
 	return allData
@@ -47,9 +66,6 @@ percentile = float(float(int(input()))/100);
 allData = parseDataInput(data)
 
 uniqueRice = getUniqueRiceLines(allData)
-
-
-
 
 
 print 'Detected ' + str(len(uniqueRice)) +' rice types'
@@ -140,6 +156,9 @@ for i in range(0,len(uniqueRice)):
 			toCSV.append(dataOutput[thisRice][k][j])
 
 print str(len(allData))+' data points imported '+str(len(toCSV)) +' data points exported to export.csv, '+str(len(allData) - len(toCSV))+' removed'
+
+
+
 
 with open('export.csv', 'w') as csvFile:
     writer = csv.writer(csvFile)
