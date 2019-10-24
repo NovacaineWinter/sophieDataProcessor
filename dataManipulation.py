@@ -1,170 +1,145 @@
 import csv
-import sys
+import copy
+from configuration import filterPercent, timeCol, nameCol, repCol, filterCol, inputFileName, outputFileName
+
+maxRepNumber = 0  # ignore this - it gets overwritten
 
 
-def getUniqueRiceLines(data):
-	#loop through to get all the names of the rice into one big long list
-	allRice = []
-	for i in range(0,len(data)):
-		allRice.append(data[i][2])
+def parseData(data):
+    global maxRepNumber
+    toReturn = []
+    incorrectCount = 0
+    for line in data:
 
-	uniqueRice = list(set(allRice))			#set is a data structure that cannot have duplicates in, turn it into a set then turn it back into a list
+        try:
+            # make sure everything is of the right variable type
+            line[repCol] = int(line[repCol])
+            line[filterCol] = float(line[filterCol])
+            line[timeCol] = int(line[timeCol])
+            line[nameCol] = int(line[nameCol])
 
-	riceList = []
+            # Work out what the maximum repetition number is
+            if line[repCol] > maxRepNumber:
+                maxRepNumber = line[repCol]
+            toReturn.append(line)
+        except:
+            incorrectCount += 1
 
-	#convert all rice names to integers - substring
-	for i in range(0,len(uniqueRice)):
-		if(uniqueRice[i] != 'riceIR64' and uniqueRice[i] != 'riceir64'):
-			riceList.append(int(uniqueRice[i][4:]))
-	
-	riceList.sort()
+    print("")
+    if incorrectCount > 0:
+        print("Loaded "+str(len(data))+' data points from file '+inputFileName)
+        print("Accepted "+str(len(toReturn))+" data points")
+        print( "Discarded "+str(incorrectCount)+' rows as they contain incorrect variable types')
+        print(" ")
+        print('time, name and repetition columns can only contain integers, the column to filter by must be numeric')
+        print(" ")
+        print(" ")
+    else:
+        print("Loaded "+str(len(data))+' data points from file '+inputFileName)
+        print("Accepted "+str(len(toReturn))+" data points")
 
-	for i in range(0,len(riceList)):
-		riceList[i] = 'rice'+str(riceList[i])
-
-	riceList.append('riceIR64')
-	uniqueRice = riceList
-	return riceList
-
-
-
-def parseDataInput(data):
-	allData = []
-	for row in data:
-		if(row[2] == 'riceir64'):
-			row[2] = 'riceIR64'
-		if(row[2] == 'ricc7'):
-			row[2] = 'rice7'
-
-		allData.append(row);
-
-	return allData
+    print("------------------------------------------------------------------")
+    return toReturn
 
 
-def isNum(input):
-	try: 
-		float(input)
-		return True
-	except:
-		return False
+def getUniqueRiceLines(rices):
+    # loop through to get all the names of the rice into one big long list
+    allRice = []
+    for rice in rices:
+        allRice.append(rice[nameCol])
+
+    uniqueRice = list(set(allRice))  # set is a data structure that cannot have duplicates in, turn it into a set then turn it back into a list
+
+    return uniqueRice
 
 
-# sys.argv[1] is the file location passed over command line
-	#open reads the file passed into the var f. 
-	#'rU' is read Universal. read as opposed to write, Universal is allowing for maximum compatibility with each csv format
-f = open(sys.argv[1], 'rU')
 
 
-#pass the file to the csv reader 
-data = csv.reader(f)
+# 'r' is read. read as opposed to write, Universal is allowing for maximum compatibility with each csv format
+f = open(inputFileName, 'r')
+
+# pass the file to the csv reader
+rawdata = csv.reader(f)
+allData = []
+for row in rawdata:
+    allData.append(row)
 
 
-#this is the percentile for choosing the data
-print "Enter percentile to filter by as an integer i.e 95% as 95"
-percentile = float(float(int(input()))/100);
+allData = parseData(allData)
 
-allData = parseDataInput(data)
+percentile = float(float(int(filterPercent) / 100))
 
 uniqueRice = getUniqueRiceLines(allData)
 
-
-print 'Detected ' + str(len(uniqueRice)) +' rice types'
-
+print('Detected ' + str(len(uniqueRice)) + ' unique data series')
+print("------------------------------------------------------------------")
 
 """
-	Create the places we are going to store data 
+Create the places we are going to store data 
 """
 
-dataStore = {} # create a place to store the data
-maxVals = {}	#here we will store the maximum gs values for each rice in order to work out 95%
+dataStore = {}  # create a place to store the data while we are working on it
+maxVals = {}  # here we will store the maximum gs values for each rice in order to work out 95%
 dataOutput = {}
 
-for i in range(0,len(uniqueRice)):
-	dataStore[uniqueRice[i]] = [[],[],[],[],[],[]] 	#create an empty list called by the name of the rice 
-	
-	dataOutput[uniqueRice[i]] = [[],[],[],[],[],[]] 	#create an empty list called by the name of the rice 
-	
-	maxVals[uniqueRice[i]] = [0,0,0,0,0,0] 	#create an zero var for storing the max gs values for each  
+dataHolder = []
+maxList = []
 
 
+for a in range(0, maxRepNumber):
+    dataHolder.append([])
+    maxList.append(0)
 
 
+for rice in uniqueRice:
+    dataStore[rice] = copy.copy(dataHolder)  # create an empty list called by the name of the rice
 
-#insert the data points 
-for i in range(1,len(allData)):
-	dataindex = (int(allData[i][3])-1)
-	dataStore[allData[i][2]][int(allData[i][3])-1].append(allData[i])
+    dataOutput[rice] = copy.copy(dataHolder)  # create an empty list called by the name of the rice
 
-
-
-for i in range(0,len(uniqueRice)):
-
-	thisRice = uniqueRice[i]		#goes through each rice in turn
-	for k in range(0,6):		
-		numDataPoints = len(dataStore[thisRice][k])
-		for j in range(0,numDataPoints):
-
-			if(isNum(dataStore[thisRice][k][j][5])):
-				if( float(dataStore[thisRice][k][j][5]) > maxVals[thisRice][k] ):
-					#print 'new high found for '
-					maxVals[thisRice][k] = float(dataStore[thisRice][k][j][5])
-
-		dataStore[thisRice][k] = sorted(dataStore[thisRice][k], key=lambda k: float(k[1]))
+    maxVals[rice] = copy.copy(maxList)  # create an zero var for storing the max gs values for each
 
 
+# Put the data points into the dataStore by name and rep number
+for i in range(1, len(allData)):
+    point = allData[i]
+    dataindex = (int(point[repCol]) - 1)  # rep number zero indexed
+    dataStore[point[nameCol]][dataindex].append(point)
+
+# figure out the maximum values for each name and rep number
+for theRice in uniqueRice:
+    for k in range(0, maxRepNumber):
+        numDataPoints = len(dataStore[theRice][k])
+        for data in dataStore[theRice][k]:
+
+            if float(data[filterCol]) > maxVals[theRice][k]:
+                maxVals[theRice][k] = float(data[filterCol])
+
+        dataStore[theRice][k] = sorted(dataStore[theRice][k], key=lambda k: float(k[timeCol]))
 
 
-#we now have the data segmented up by rice, and we have the maximum gs values for each
-#lets go through again and find out which ones are below 95%
+# we now have the data segmented up by rice, and we have the maximum filter values for each
+# lets go through again and find out which ones are below 95%
 
-for i in range(0,len(uniqueRice)):
-
-
-	thisRice = uniqueRice[i]		#goes through each rice in turn
-	for k in range(0,6):
-
-		carryingOn = True;
-
-		for j in range(0,len(dataStore[thisRice][k])):
-
-			if(isNum(dataStore[thisRice][k][j][5])):
-
-				if(float(dataStore[thisRice][k][j][5]) < (float(maxVals[thisRice][k] * percentile)) and carryingOn):
-
-					dataOutput[thisRice][k].append( dataStore[thisRice][k][j])
-
-				else:
-					carryingOn = False;
-			else:
-				
-				dataOutput[thisRice][k].append( dataStore[thisRice][k][j])
-
-
-	#print str(len(dataStore[thisRice]))+' data points in rice '+ thisRice +', max val:'+str(maxVals[thisRice])
-
-
-
+appended = 0
 toCSV = []
 
-for i in range(0,len(uniqueRice)):
 
-	thisRice = uniqueRice[i]
+allData = sorted(allData, key=lambda k: float(k[nameCol]))
+allData = sorted(allData, key=lambda k: float(k[timeCol]))
 
-	for k in range(0,6):
+for data in allData:
+    if data[filterCol] < maxVals[data[nameCol]][(data[repCol]-1)] * percentile:
+        toCSV.append(data)
+        appended+=1
 
-		for j in range(0,len(dataOutput[thisRice][k])):
-			toCSV.append(dataOutput[thisRice][k][j])
+print(str(len(toCSV)) + ' data points exported to export.csv')
+print(str(len(allData) - len(toCSV)) + ' data points were above '+str(filterPercent)+"% of the maximum for its repetition")
+print("")
+print("")
+print("outputting " + str(len(toCSV)) + " data points to csv file "+outputFileName)
 
-print str(len(allData))+' data points imported '+str(len(toCSV)) +' data points exported to export.csv, '+str(len(allData) - len(toCSV))+' removed'
-
-
-
-
-with open('export.csv', 'w') as csvFile:
+with open(outputFileName, 'w') as csvFile:
     writer = csv.writer(csvFile)
     writer.writerows(toCSV)
 
 csvFile.close()
-
-
-
