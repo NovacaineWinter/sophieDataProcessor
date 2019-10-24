@@ -15,7 +15,7 @@ def parseData(data):
             line[repCol] = int(line[repCol])
             line[filterCol] = float(line[filterCol])
             line[timeCol] = int(line[timeCol])
-            line[nameCol] = int(line[nameCol])
+            #line[nameCol] = int(line[nameCol])
 
             # Work out what the maximum repetition number is
             if line[repCol] > maxRepNumber:
@@ -96,7 +96,7 @@ for a in range(0, maxRepNumber):
     maxList.append(0)
 
 
-for rice in uniqueRice:
+for rice in range(0, len(uniqueRice)):
     dataStore[rice] = copy.copy(dataHolder)  # create an empty list called by the name of the rice
 
     dataOutput[rice] = copy.copy(dataHolder)  # create an empty list called by the name of the rice
@@ -108,10 +108,11 @@ for rice in uniqueRice:
 for i in range(1, len(allData)):
     point = allData[i]
     dataindex = (int(point[repCol]) - 1)  # rep number zero indexed
-    dataStore[point[nameCol]][dataindex].append(point)
+    nameIndex = uniqueRice.index(point[nameCol])
+    dataStore[nameIndex][dataindex].append(point)
 
 # figure out the maximum values for each name and rep number
-for theRice in uniqueRice:
+for theRice in range(0, len(uniqueRice)):
     for k in range(0, maxRepNumber):
         numDataPoints = len(dataStore[theRice][k])
         for data in dataStore[theRice][k]:
@@ -131,10 +132,11 @@ appended = 0
 
 allData = sorted(allData, key=lambda k: float(k[timeCol]))
 allData = sorted(allData, key=lambda k: float(k[repCol]))
-allData = sorted(allData, key=lambda k: float(k[nameCol]))
+allData = sorted(allData, key=lambda k: float(uniqueRice.index(k[nameCol])))
 
 for data in allData:
-    limit = maxVals[data[nameCol]][(data[repCol]-1)] * percentile
+    nameIndex = uniqueRice.index(data[nameCol])
+    limit = maxVals[nameIndex][(data[repCol]-1)] * percentile
     if data[filterCol] <= limit:
         toCSV.append(data)
         appended+=1
@@ -143,7 +145,7 @@ print(str(len(toCSV)-1) + ' data points exported to export.csv')
 print(str(len(allData) - len(toCSV) +1) + ' data points were above '+str(filterPercent)+"% of the maximum for its repetition")
 print("")
 print("")
-print("outputting " + str(len(toCSV)) + " data points to csv file "+outputFileName)
+print("outputting " + str(len(toCSV)-1) + " data points to csv file "+outputFileName)
 
 with open(outputFileName, 'w') as csvFile:
     writer = csv.writer(csvFile)
