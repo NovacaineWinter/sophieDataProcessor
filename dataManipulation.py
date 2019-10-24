@@ -4,7 +4,6 @@ from configuration import filterPercent, timeCol, nameCol, repCol, filterCol, in
 
 maxRepNumber = 0  # ignore this - it gets overwritten
 
-
 def parseData(data):
     global maxRepNumber
     toReturn = []
@@ -60,14 +59,20 @@ f = open(inputFileName, 'r')
 
 # pass the file to the csv reader
 rawdata = csv.reader(f)
-allData = []
-for row in rawdata:
-    allData.append(row)
 
+allData = []
+
+toCSV = []
+first = True
+for row in rawdata:
+    if first:
+        toCSV.append(row)
+        first = False
+    allData.append(row)
 
 allData = parseData(allData)
 
-percentile = float(float(int(filterPercent) / 100))
+percentile =float(filterPercent) / 100
 
 uniqueRice = getUniqueRiceLines(allData)
 
@@ -121,19 +126,21 @@ for theRice in uniqueRice:
 # lets go through again and find out which ones are below 95%
 
 appended = 0
-toCSV = []
 
 
-allData = sorted(allData, key=lambda k: float(k[nameCol]))
+
 allData = sorted(allData, key=lambda k: float(k[timeCol]))
+allData = sorted(allData, key=lambda k: float(k[repCol]))
+allData = sorted(allData, key=lambda k: float(k[nameCol]))
 
 for data in allData:
-    if data[filterCol] < maxVals[data[nameCol]][(data[repCol]-1)] * percentile:
+    limit = maxVals[data[nameCol]][(data[repCol]-1)] * percentile
+    if data[filterCol] <= limit:
         toCSV.append(data)
         appended+=1
 
-print(str(len(toCSV)) + ' data points exported to export.csv')
-print(str(len(allData) - len(toCSV)) + ' data points were above '+str(filterPercent)+"% of the maximum for its repetition")
+print(str(len(toCSV)-1) + ' data points exported to export.csv')
+print(str(len(allData) - len(toCSV) +1) + ' data points were above '+str(filterPercent)+"% of the maximum for its repetition")
 print("")
 print("")
 print("outputting " + str(len(toCSV)) + " data points to csv file "+outputFileName)
