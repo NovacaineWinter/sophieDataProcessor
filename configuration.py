@@ -19,8 +19,8 @@ filterPercent = 95
 timeCol = 1
 nameCol = 2
 repCol = 6
-filterCol = 7
+filterCol = 7 #this is the dependant variable 
 
 # file names
-inputFileName = 'Pracha_data.csv'
-outputFileName = 'Pracha_data_filteredByPhoto.csv'
+inputFileName = 'Pracha_data.csv' #assume in same directory as this code, unless you specify a separate pathway
+outputFileName = 'Pracha_data_filteredByPhoto.csv' #this will get dumpoed in your set working directory. 
