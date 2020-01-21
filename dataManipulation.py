@@ -1,5 +1,4 @@
 import csv
-import copy
 from configuration import filterPercent, timeCol, nameCol, repCol, filterCol, inputFileName, outputFileName, numToSubset, saveOutASubset
 
 
@@ -15,7 +14,6 @@ def parseData(data):
             line[repCol] = int(line[repCol])
             line[filterCol] = float(line[filterCol])
             line[timeCol] = float(line[timeCol])
-            # line[nameCol] = int(line[nameCol])
 
             # Work out what the maximum repetition number is
             if line[repCol] > maxRepNumber:
@@ -23,6 +21,7 @@ def parseData(data):
             toReturn.append(line)
         except:
             incorrectCount += 1
+            rejectedData.append(line)
 
     print("")
     if incorrectCount > 0:
@@ -48,10 +47,10 @@ def getUniqueRiceLines(rices):
     for rice in rices:
         allRice.append(rice[nameCol])
 
-    uniqueRice = list(set(
-        allRice))  # set is a data structure that cannot have duplicates in, turn it into a set then turn it back into a list
+    uniqueRice = list(set(allRice))  # set is a data structure that cannot have duplicates in, turn it into a set then turn it back into a list
 
     return uniqueRice
+
 
 
 def filterData(dataArrayArgs):
@@ -98,6 +97,7 @@ for row in rawdata:
     allData.append(row)
 
 maxRepNumber = 0  # initilise this in global scope for the call to parseData
+rejectedData = []
 allData = parseData(allData)
 
 percentile = float(filterPercent) / 100
@@ -149,10 +149,21 @@ print(str(len(allData) - len(recompiledData) + 1) + ' data points were above ' +
 print("")
 print("")
 print("outputting " + str(len(recompiledData) - 1) + " data points to csv file " + outputFileName)
-
+print("")
+print("")
 with open(outputFileName, 'w') as csvFile:
     writer = csv.writer(csvFile)
     writer.writerows(recompiledData)
+csvFile.close()
+
+
+print("Number of rejected data ponts to save: " +str(len(rejectedData)))
+print("")
+print("")
+
+with open('rejected.csv', 'w') as rejectData:
+    writer = csv.writer(rejectData)
+    writer.writerows(rejectedData)
 csvFile.close()
 
 

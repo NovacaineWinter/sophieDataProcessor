@@ -18,13 +18,14 @@ filterPercent = 95
 # column positions in the csv
 timeCol = 1
 nameCol = 2
-repCol = 6
-filterCol = 7 #this is the dependant variable
+repCol = 3
+filterCol = 5 #this is the dependant variable
 
 saveOutASubset = True
 numToSubset = 5
 
 # file names
 #inputFileName = '/home/matt/Desktop/testdata.csv' #assume in same directory as this code, unless you specify a separate pathway
-inputFileName = './Pracha_data.csv' #assume in same directory as this code, unless you specify a separate pathway
+#inputFileName = './Pracha_data.csv' #assume in same directory as this code, unless you specify a separate pathway
+inputFileName = './R.AccGs.csv' #assume in same directory as this code, unless you specify a separate pathway
 outputFileName = 'Pracha_data_filteredByPhoto.csv' #this will get dumpoed in your set working directory.
