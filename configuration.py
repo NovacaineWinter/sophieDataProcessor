@@ -16,11 +16,15 @@ PAR | Time (sec) | Line | ADNID code | Accession | ADN code | Rep | Photo | cond
 filterPercent = 95
 
 # column positions in the csv
-timeCol = 0
-nameCol = 1
-repCol = 2
-filterCol = 3 #this is the dependant variable
+timeCol = 1
+nameCol = 2
+repCol = 6
+filterCol = 7 #this is the dependant variable
+
+saveOutASubset = True
+numToSubset = 5
 
 # file names
-inputFileName = '/home/matt/Desktop/testdata.csv' #assume in same directory as this code, unless you specify a separate pathway
-outputFileName = 'Pracha_data_filteredByPhoto.csv' #this will get dumpoed in your set working directory. 
+#inputFileName = '/home/matt/Desktop/testdata.csv' #assume in same directory as this code, unless you specify a separate pathway
+inputFileName = './Pracha_data.csv' #assume in same directory as this code, unless you specify a separate pathway
+outputFileName = 'Pracha_data_filteredByPhoto.csv' #this will get dumpoed in your set working directory.

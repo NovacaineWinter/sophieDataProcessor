@@ -1,9 +1,9 @@
 import csv
 import copy
-from configuration import filterPercent, timeCol, nameCol, repCol, filterCol, inputFileName, outputFileName
+from configuration import filterPercent, timeCol, nameCol, repCol, filterCol, inputFileName, outputFileName, numToSubset, saveOutASubset
 
-maxRepNumber = 0  # ignore this - it gets overwritten
 
+# this function does a deal of typechecking and organising of raw input data
 def parseData(data):
     global maxRepNumber
     toReturn = []
@@ -14,8 +14,8 @@ def parseData(data):
             # make sure everything is of the right variable type
             line[repCol] = int(line[repCol])
             line[filterCol] = float(line[filterCol])
-            line[timeCol] = int(line[timeCol])
-            #line[nameCol] = int(line[nameCol])
+            line[timeCol] = float(line[timeCol])
+            # line[nameCol] = int(line[nameCol])
 
             # Work out what the maximum repetition number is
             if line[repCol] > maxRepNumber:
@@ -26,16 +26,17 @@ def parseData(data):
 
     print("")
     if incorrectCount > 0:
-        print("Loaded "+str(len(data))+' data points from file '+inputFileName)
-        print("Accepted "+str(len(toReturn))+" data points")
-        print( "Discarded "+str(incorrectCount)+' rows as they contain incorrect variable types')
+        print("Loaded " + str(len(data)) + ' data points from file ' + inputFileName)
+        print("Accepted " + str(len(toReturn)) + " data points")
+        print("Discarded " + str(incorrectCount) + ' rows as they contain incorrect variable types')
         print(" ")
-        print('time, name and repetition columns can only contain integers, the column to filter by must be numeric')
+        print(
+            'repetition columns can only contain integers, the column to filter and the time column by must be numeric')
         print(" ")
         print(" ")
     else:
-        print("Loaded "+str(len(data))+' data points from file '+inputFileName)
-        print("Accepted "+str(len(toReturn))+" data points")
+        print("Loaded " + str(len(data)) + ' data points from file ' + inputFileName)
+        print("Accepted " + str(len(toReturn)) + " data points")
 
     print("------------------------------------------------------------------")
     return toReturn
@@ -47,11 +48,37 @@ def getUniqueRiceLines(rices):
     for rice in rices:
         allRice.append(rice[nameCol])
 
-    uniqueRice = list(set(allRice))  # set is a data structure that cannot have duplicates in, turn it into a set then turn it back into a list
+    uniqueRice = list(set(
+        allRice))  # set is a data structure that cannot have duplicates in, turn it into a set then turn it back into a list
 
     return uniqueRice
 
 
+def filterData(dataArrayArgs):
+    # check we have data
+    if len(dataArrayArgs) > 0:
+
+        # sort into ascending time order
+        dataArray = sorted(dataArrayArgs, key=lambda k: float(k[timeCol]))
+
+        # get the highest value
+        max = 0
+        for point in dataArray:
+            if point[filterCol] > max:
+                max = point[filterCol]
+
+        # calculate the value of the cutoff based on percentage
+        cutoff = float(percentile * max)
+
+        prunedData = []
+        for i in range(0, len(dataArray)):
+            if dataArray[i][filterCol] < cutoff:
+                prunedData.append(dataArray[i])
+            else:
+                print("stopping at data point " + str(i) + '/' + str(len(dataArray)) + '   -  name:' + str(
+                    dataArray[i][nameCol]) + ', rep:' + str(dataArray[i][repCol]))
+                break
+        return prunedData
 
 
 # 'r' is read. read as opposed to write, Universal is allowing for maximum compatibility with each csv format
@@ -62,93 +89,80 @@ rawdata = csv.reader(f)
 
 allData = []
 
-toCSV = []
+headings = []
 first = True
 for row in rawdata:
     if first:
-        toCSV.append(row)
+        headings = row
         first = False
     allData.append(row)
 
+maxRepNumber = 0  # initilise this in global scope for the call to parseData
 allData = parseData(allData)
 
-percentile =float(filterPercent) / 100
+percentile = float(filterPercent) / 100
 
 uniqueRice = getUniqueRiceLines(allData)
 
 print('Detected ' + str(len(uniqueRice)) + ' unique data series')
 print("------------------------------------------------------------------")
 
-"""
-Create the places we are going to store data 
-"""
+dataStack = []
 
-dataStore = {}  # create a place to store the data while we are working on it
-maxVals = {}  # here we will store the maximum gs values for each rice in order to work out 95%
-dataOutput = {}
+for rice in uniqueRice:
+    for i in range(1, maxRepNumber + 1):
+        singleDataSeries = []
+        for entry in allData:
+            if entry[nameCol] == rice and entry[repCol] == i:
+                singleDataSeries.append(entry)
+        if len(singleDataSeries) > 0:
+            dataStack.append(singleDataSeries)
 
-dataHolder = []
-maxList = []
+print("separated out into " + str(len(dataStack)) + " unique data series")
 
+print("filtering by values")
 
-for a in range(0, maxRepNumber):
-    dataHolder.append([])
-    maxList.append(0)
-
-
-for rice in range(0, len(uniqueRice)):
-    dataStore[rice] = copy.copy(dataHolder)  # create an empty list called by the name of the rice
-
-    dataOutput[rice] = copy.copy(dataHolder)  # create an empty list called by the name of the rice
-
-    maxVals[rice] = copy.copy(maxList)  # create an zero var for storing the max gs values for each
-
-
-# Put the data points into the dataStore by name and rep number
-for i in range(1, len(allData)):
-    point = allData[i]
-    dataindex = (int(point[repCol]) - 1)  # rep number zero indexed
-    nameIndex = uniqueRice.index(point[nameCol])
-    dataStore[nameIndex][dataindex].append(point)
-
-# figure out the maximum values for each name and rep number
-for theRice in range(0, len(uniqueRice)):
-    for k in range(0, maxRepNumber):
-        numDataPoints = len(dataStore[theRice][k])
-        for data in dataStore[theRice][k]:
-
-            if float(data[filterCol]) > maxVals[theRice][k]:
-                maxVals[theRice][k] = float(data[filterCol])
-
-        dataStore[theRice][k] = sorted(dataStore[theRice][k], key=lambda k: float(k[timeCol]))
+counter = 1
+subsetRaw = []
+subsetFiltered = []
+finished = []
+for series in dataStack:
+    filtered = filterData(series)
+    finished.append(filtered)
+    if counter <= numToSubset:
+        for raw in series:
+            subsetRaw.append(raw)
+        for filterpoint in filtered:
+            subsetFiltered.append(filterpoint)
+        counter += 1
 
 
-# we now have the data segmented up by rice, and we have the maximum filter values for each
-# lets go through again and find out which ones are below 95%
+recompiledData = [headings]
 
-appended = 0
+for series in finished:
+    for point in series:
+        recompiledData.append(point)
 
-
-
-allData = sorted(allData, key=lambda k: float(k[timeCol]))
-allData = sorted(allData, key=lambda k: float(k[repCol]))
-allData = sorted(allData, key=lambda k: float(uniqueRice.index(k[nameCol])))
-
-for data in allData:
-    nameIndex = uniqueRice.index(data[nameCol])
-    limit = maxVals[nameIndex][(data[repCol]-1)] * percentile
-    if data[filterCol] <= limit:
-        toCSV.append(data)
-        appended+=1
-
-print(str(len(toCSV)-1) + ' data points exported to export.csv')
-print(str(len(allData) - len(toCSV) +1) + ' data points were above '+str(filterPercent)+"% of the maximum for its repetition")
+print(str(len(recompiledData) - 1) + ' data points exported to export.csv')
+print(str(len(allData) - len(recompiledData) + 1) + ' data points were above ' + str(
+    filterPercent) + "% of the maximum for its repetition")
 print("")
 print("")
-print("outputting " + str(len(toCSV)-1) + " data points to csv file "+outputFileName)
+print("outputting " + str(len(recompiledData) - 1) + " data points to csv file " + outputFileName)
 
 with open(outputFileName, 'w') as csvFile:
     writer = csv.writer(csvFile)
-    writer.writerows(toCSV)
-
+    writer.writerows(recompiledData)
 csvFile.close()
+
+
+if saveOutASubset:
+    with open('subsetFiltered.csv', 'w') as filtercsv:
+        filterwriter = csv.writer(filtercsv)
+        filterwriter.writerows(subsetFiltered)
+    filtercsv.close()
+
+    with open('subsetRaw.csv', 'w') as rawcsv:
+        rawwriter = csv.writer(rawcsv)
+        rawwriter.writerows(subsetRaw)
+    rawcsv.close()
